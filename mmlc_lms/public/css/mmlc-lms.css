@@ -1,0 +1,41 @@
+/* MMLC: wygląd widoku kursanta /lms (frappe-ui) według BRAND.md v1.1 */
+@font-face { font-family: "Switzer"; src: url("/files/Switzer-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/files/IBMPlexMono-500-latin-ext.woff2") format("woff2"); font-weight: 500; font-display: swap; unicode-range: U+0100-02BA, U+1E00-1EFF; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/files/IBMPlexMono-500-latin.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+
+:root, [data-theme="light"] {
+  /* tła: baza #F5F2EC, karty i treść biel, menu i hover surface-2 */
+  --surface-base: #FFFFFF;
+  --surface-sidebar: #F5F2EC; --surface-alpha-sidebar: #F5F2EC;
+  --surface-gray-1: #F5F2EC; --surface-gray-2: #EEE9E0; --surface-gray-3: #E6E0D4; --surface-gray-4: #DED8CC;
+  --surface-gray-5: #C9C1B2; --surface-gray-6: #9C9488; --surface-gray-7: #0B2450; --surface-gray-8: #123061;
+  --surface-gray-9: #0B2450; --surface-gray-10: #061A3F;
+  --surface-elevation-1: #FFFFFF; --surface-elevation-2: #FFFFFF; --surface-elevation-3: #FFFFFF;
+  /* tekst: grafit, akapit, wyciszony */
+  --ink-gray-9: #242424; --ink-gray-8: #242424; --ink-gray-7: #4A4A4A; --ink-gray-6: #707070; --ink-gray-5: #707070;
+  --ink-gray-4: #9C9488; --ink-gray-3: #C9C1B2;
+  /* linie */
+  --outline-gray-1: #DED8CC; --outline-gray-2: #DED8CC; --outline-gray-3: #C9C1B2; --outline-gray-4: #9C9488;
+  --outline-gray-modals: #DED8CC;
+  /* akcent: turkus (tekst i linki teal-700) */
+  --ink-blue-link: #23716B; --ink-blue-3: #23716B; --ink-blue-4: #23716B;
+  --surface-teal-1: #EBF9F8; --surface-teal-2: #D8F3F1; --ink-teal-3: #1A5651;
+  /* promienie 0-4 px */
+  --radius-2: 4px; --radius-3: 4px; --radius-4: 4px; --radius-5: 4px; --radius-6: 4px; --radius-7: 4px; --radius-8: 4px;
+  --radius-md: 4px; --radius-lg: 4px; --radius-xl: 4px; --radius-2xl: 4px;
+  color-scheme: light;
+}
+html, body, #app, button, input, textarea, select { font-family: "Switzer", ui-sans-serif, system-ui, sans-serif !important; }
+body { background: #F5F2EC; }
+h1, h2, h3, .font-semibold, .font-bold { font-weight: 500 !important; letter-spacing: -0.01em; }
+code, kbd, pre, .font-mono { font-family: "IBM Plex Mono", ui-monospace, monospace !important; }
+/* przycisk główny: pigułka turkus, tekst granat (BRAND 4) */
+button[data-variant="solid"], a[data-variant="solid"] {
+  background: #36B0A7 !important; color: #061A3F !important; border-radius: 999px !important; font-weight: 600 !important;
+}
+button[data-variant="solid"]:hover, a[data-variant="solid"]:hover { background: #53CAC2 !important; }
+button[data-variant="subtle"], button[data-variant="outline"] { border-radius: 999px !important; }
+/* postęp i zaznaczenia w turkusie */
+.bg-surface-gray-7, [role="progressbar"] > div { background-color: #36B0A7 !important; }
+/* ⚡ Powered by Frappe Learning w menu */
+a[href*="frappe.io/learning"], [aria-label="Powered by Frappe Learning"] { display: none !important; }
