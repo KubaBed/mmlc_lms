@@ -20,10 +20,52 @@
 			}
 		});
 	}
+	// Frappe Learning dokleja do liczby jedną formę słowa ("6 lekcje", "1 Kursanci"). Poprawiamy odmianę.
+	var FORMS = {
+		"lekcje": ["lekcja", "lekcje", "lekcji"], "lekcji": ["lekcja", "lekcje", "lekcji"],
+		"sekcje": ["sekcja", "sekcje", "sekcji"], "sekcji": ["sekcja", "sekcje", "sekcji"],
+		"kursanci": ["kursant", "kursanci", "kursantów"], "kursantów": ["kursant", "kursanci", "kursantów"]
+	};
+	function form(n, f) {
+		if (n === 1) return f[0];
+		var d = n % 10, h = n % 100;
+		return d >= 2 && d <= 4 && (h < 12 || h > 14) ? f[1] : f[2];
+	}
+	var NUM = /(\d+)\s+(lekcje|lekcji|sekcje|sekcji|kursanci|kursantów)(?![\p{L}])/giu;
+	function plurals(root) {
+		var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n;
+		while ((n = w.nextNode())) {
+			var v = n.nodeValue;
+			if (!/\d/.test(v)) continue;
+			var r = v.replace(NUM, function (m, num, word) { return num + " " + form(+num, FORMS[word.toLowerCase()]); });
+			if (r !== v) n.nodeValue = r;
+		}
+	}
+	// Elementy, których kancelaria nie używa: filtr certyfikatów i zachęta do uzupełnienia profilu.
+	function tidy(root) {
+		root.querySelectorAll("label, button, span, div").forEach(function (el) {
+			if (el.childElementCount > 3) return;
+			var t = (el.textContent || "").trim();
+			if (t === "Certyfikacja" && el.tagName === "LABEL") {
+				var box = el.closest("div") || el;
+				box.style.display = "none";
+			} else if (t === "Uzupełnij profil") {
+				var card = el.parentElement && el.parentElement.parentElement;
+				if (card && /Mój profil/.test(card.textContent || "")) card.style.display = "none";
+			} else if (t === "Opublikowany" && el.tagName === "BUTTON") {
+				el.textContent = "Opublikowane";
+			}
+		});
+	}
 	var pending = false;
 	new MutationObserver(function () {
 		if (pending) return;
 		pending = true;
-		requestAnimationFrame(function () { pending = false; if (document.querySelector(".plyr")) tr(document); });
-	}).observe(document.documentElement, { childList: true, subtree: true });
+		requestAnimationFrame(function () {
+			pending = false;
+			if (document.querySelector(".plyr")) tr(document);
+			plurals(document.body);
+			tidy(document.body);
+		});
+	}).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
 })();
