@@ -11,7 +11,7 @@
 		"Disable captions": "Wyłącz napisy", "% buffered": "% wczytano"
 	};
 	function tr(root) {
-		root.querySelectorAll(".plyr [aria-label], .plyr .plyr__tooltip, .plyr .plyr__menu span, .plyr label").forEach(function (el) {
+		root.querySelectorAll(".plyr [aria-label], .plyr .plyr__tooltip, .plyr .plyr__sr-only, .plyr .plyr__menu span, .plyr label, .plyr progress").forEach(function (el) {
 			var a = el.getAttribute("aria-label");
 			if (a && PL[a]) el.setAttribute("aria-label", PL[a]);
 			if (el.childNodes.length === 1 && el.firstChild.nodeType === 3) {
@@ -36,8 +36,10 @@
 		var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n;
 		while ((n = w.nextNode())) {
 			var v = n.nodeValue;
-			if (!/\d/.test(v)) continue;
+			if (!/\d/.test(v) && v.indexOf("ocena kursu") < 0) continue;
 			var r = v.replace(NUM, function (m, num, word) { return num + " " + form(+num, FORMS[word.toLowerCase()]); });
+			r = r.replace(/^(\d+)\s+zapisanych$/, "Zapisani: $1")
+				.replace(/ocena kursu\s*&\s*(\d+)\s+ocen\S*\s+kursant\S*/, "średnia ocena · opinie: $1");
 			if (r !== v) n.nodeValue = r;
 		}
 	}
@@ -54,8 +56,15 @@
 				if (card && /Mój profil/.test(card.textContent || "")) card.style.display = "none";
 			} else if (t === "Opublikowany" && el.tagName === "BUTTON") {
 				el.textContent = "Opublikowane";
+			} else if (t === "Opublikowany" && el.tagName === "DIV" && /rounded-full/.test(el.className)) {
+				// Odznaka statusu kursu przy tytule: kursant nie potrzebuje "Opublikowany", autor dalej widzi "Szkic".
+				el.style.display = "none";
 			}
 		});
+	}
+	function skipLink() {
+		var a = document.querySelector("a.sr-only[href^='#']");
+		if (a && a.textContent.trim() === "Skip to main content") a.textContent = "Przejdź do treści";
 	}
 	var pending = false;
 	new MutationObserver(function () {
@@ -66,6 +75,7 @@
 			if (document.querySelector(".plyr")) tr(document);
 			plurals(document.body);
 			tidy(document.body);
+			skipLink();
 		});
 	}).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
 })();
