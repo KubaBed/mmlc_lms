@@ -1,11 +1,13 @@
 """Webhook Easycart -> konto i zapis na kurs we Frappe Learning (decyzja Kuby 21.10, plik 18 sekcja 8).
 
 Adres dla Easycart (pole webhook_url produktu): https://<strona>/api/method/mmlc_lms.easycart.api.webhook
-Ustawienia w site_config strony (nie w repo, repo jest publiczne):
-- easycart_webhook_key: klucz podpisu z panelu Easycart (Ustawienia sklepu, API i Webhooki)
-- easycart_lacznik_user: konto techniczne z rolą Moderator; tylko ono może zapisać kogoś na kurs
+Ustawienia w bazie, doctype "MMLC Ustawienia Easycart" (nie w repo, repo jest publiczne; od 0.2.1 nie w site_config,
+bo zapis site_config przez API Frappe Cloud 21.10 zmienił klucz szyfrowania strony):
+- klucz_podpisu: klucz z panelu Easycart (Ustawienia sklepu, API i Webhooki)
+- konto_lacznika: konto techniczne z rolą Moderator; tylko ono może zapisać kogoś na kurs
   z wyłączonym samodzielnym zapisem (LMS Enrollment.managed_by_caller)
-- easycart_alarm_email: adres na alarmy (zły podpis, nieznany kurs, błąd Frappe)
+- adres_alarmow: adres na alarmy (zły podpis, nieznany kurs, błąd Frappe)
+Pole puste = wartość z site_config (easycart_webhook_key, easycart_lacznik_user, easycart_alarm_email), jak w 0.2.0.
 Decyzje i podpis: logika.py (testy w testy/, bez lokalnego Frappe).
 """
 
@@ -18,7 +20,20 @@ from frappe.rate_limiter import rate_limit
 from mmlc_lms.easycart.logika import Stan, Zdarzenie, obsluz
 
 DZIENNIK = "MMLC Zdarzenie Easycart"
+USTAWIENIA = "MMLC Ustawienia Easycart"
 MAKS_TRESC = 65_000  # bajtów zapisywanych w dzienniku (obcy, niepodpisany ruch też tu trafia)
+
+
+def _ustawienie(pole: str, klucz_site_config: str, haslo: bool = False) -> str | None:
+	if haslo:
+		wartosc = frappe.get_single(USTAWIENIA).get_password(pole, raise_exception=False)
+	else:
+		wartosc = frappe.db.get_single_value(USTAWIENIA, pole)
+	return wartosc or frappe.conf.get(klucz_site_config)
+
+
+def _klucz_podpisu() -> str | None:
+	return _ustawienie("klucz_podpisu", "easycart_webhook_key", haslo=True)
 
 
 def _w_punkcie_zapisu(dzialanie):
@@ -83,7 +98,7 @@ class PlatformaFrappe:
 
 	def alarm(self, tekst: str):
 		frappe.log_error(title="Łącznik Easycart", message=tekst)
-		adres = frappe.conf.get("easycart_alarm_email")
+		adres = _ustawienie("adres_alarmow", "easycart_alarm_email")
 		if adres:
 			frappe.sendmail(recipients=[adres], subject=f"Łącznik Easycart: {tekst[:120]}", message=tekst)
 
@@ -104,7 +119,7 @@ class PlatformaFrappe:
 
 def _obsluz_jako_lacznik(surowa: bytes, naglowek: str | None, klucz: str):
 	uzytkownik = frappe.session.user
-	frappe.set_user(frappe.conf.get("easycart_lacznik_user") or "Administrator")
+	frappe.set_user(_ustawienie("konto_lacznika", "easycart_lacznik_user") or "Administrator")
 	try:
 		return obsluz(surowa, naglowek, klucz, PlatformaFrappe())
 	finally:
@@ -114,7 +129,7 @@ def _obsluz_jako_lacznik(surowa: bytes, naglowek: str | None, klucz: str):
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @rate_limit(limit=120, seconds=60)
 def webhook():
-	klucz = frappe.conf.get("easycart_webhook_key")
+	klucz = _klucz_podpisu()
 	if not klucz:
 		frappe.local.response.http_status_code = 503
 		return {"status": "brak_konfiguracji"}
@@ -129,7 +144,7 @@ def webhook():
 def odtworz(nazwa: str):
 	"""Ponowne przetworzenie zdarzenia z dziennika (np. po awarii, scenariusz S8). Tylko System Manager."""
 	frappe.only_for("System Manager")
-	klucz = frappe.conf.get("easycart_webhook_key")
+	klucz = _klucz_podpisu()
 	wpis = frappe.db.get_value(DZIENNIK, nazwa, ["status", "tresc"], as_dict=True)
 	if wpis.status == "zly_podpis":
 		frappe.throw("Zdarzenia ze złym podpisem nie odtwarzamy: nie przyszło od Easycart.")

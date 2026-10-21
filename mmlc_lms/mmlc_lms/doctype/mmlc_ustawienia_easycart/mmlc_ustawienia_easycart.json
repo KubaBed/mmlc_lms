@@ -1,0 +1,53 @@
+{
+ "actions": [],
+ "creation": "2026-10-21 21:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "klucz_podpisu",
+  "konto_lacznika",
+  "adres_alarmow"
+ ],
+ "fields": [
+  {
+   "fieldname": "klucz_podpisu",
+   "fieldtype": "Password",
+   "label": "Klucz podpisu webhooków",
+   "description": "Z panelu Easycart: Ustawienia sklepu, API i Webhooki."
+  },
+  {
+   "fieldname": "konto_lacznika",
+   "fieldtype": "Link",
+   "label": "Konto techniczne łącznika",
+   "options": "User",
+   "description": "Konto z rolą Moderator; tylko ono może zapisać kogoś na kurs z wyłączonym samodzielnym zapisem."
+  },
+  {
+   "fieldname": "adres_alarmow",
+   "fieldtype": "Data",
+   "label": "Adres na alarmy",
+   "options": "Email"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-21 21:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "MMLC LMS",
+ "name": "MMLC Ustawienia Easycart",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
