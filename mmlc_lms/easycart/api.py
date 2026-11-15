@@ -21,7 +21,8 @@ from mmlc_lms.easycart.logika import Stan, Zdarzenie, obsluz
 
 DZIENNIK = "MMLC Zdarzenie Easycart"
 USTAWIENIA = "MMLC Ustawienia Easycart"
-MAKS_TRESC = 65_000  # bajtów zapisywanych w dzienniku (obcy, niepodpisany ruch też tu trafia)
+MAKS_TRESC = 65_000  # bajtów zapisywanych w dzienniku (tylko podpisane zdarzenia; zły podpis zostawia sam skrót)
+ALARM_ZLY_PODPIS = "mmlc_lms:easycart:alarm_zly_podpis"
 
 
 def _ustawienie(pole: str, klucz_site_config: str, haslo: bool = False) -> str | None:
@@ -95,6 +96,13 @@ class PlatformaFrappe:
 		nazwa = frappe.db.get_value("LMS Enrollment", {"member": z.email, "course": z.kurs})
 		if nazwa:
 			frappe.delete_doc("LMS Enrollment", nazwa, ignore_permissions=True)
+
+	def zly_podpis(self, rozmiar: int, skrot: str):
+		# w dzienniku sam ślad (rozmiar i skrót), bez treści od nieznanego nadawcy; mail alarmowy najwyżej raz na godzinę
+		self.zapisz_w_dzienniku(f"[odrzucone: zły podpis, {rozmiar} bajtów, sha256 {skrot}]".encode(), None, "zly_podpis", "")
+		if not frappe.cache.get_value(ALARM_ZLY_PODPIS, expires=True):
+			frappe.cache.set_value(ALARM_ZLY_PODPIS, 1, expires_in_sec=3600)
+			self.alarm("Webhook Easycart ze złym podpisem (kolejne z tej godziny tylko w dzienniku)")
 
 	def alarm(self, tekst: str):
 		frappe.log_error(title="Łącznik Easycart", message=tekst)

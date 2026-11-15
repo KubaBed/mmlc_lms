@@ -46,6 +46,14 @@ class Atrapa:
 	def alarm(self, tekst):
 		self.alarmy.append(tekst)
 
+	def zly_podpis(self, rozmiar, skrot):
+		# jak api.py: wpis bez treści, alarm tylko pierwszy raz (w api.py: raz na godzinę przez cache)
+		self.dziennik.append({"surowa": f"{rozmiar} {skrot}", "rodzaj": None, "order_id": None, "email": None, "kurs": None,
+                              "status": "zly_podpis", "opis": ""})
+		if not getattr(self, "_alarm_podpisu", False):
+			self._alarm_podpisu = True
+			self.alarmy.append("Webhook Easycart ze złym podpisem")
+
 	def zapisz_w_dzienniku(self, surowa, z, status, opis):
 		self.dziennik.append({"surowa": surowa, "rodzaj": z.rodzaj if z else None, "order_id": z.order_id if z else None,
                               "email": z.email if z else None, "kurs": z.kurs if z else None,
@@ -118,3 +126,33 @@ def test_podpisana_tresc_ktora_nie_jest_jsonem_400():
 	w = obsluz(tresc, podpisz(tresc), KLUCZ, a)
 	assert (w.kod, w.status) == (400, "blad")
 	assert [d["status"] for d in a.dziennik] == ["blad"]
+
+
+def test_dwa_zle_podpisy_jeden_alarm_i_brak_tresci_w_dzienniku():
+	a = Atrapa()
+	wyslij(a, podpis="0" * 64)
+	wyslij(a, dict(PAYLOAD, customer_email="tajne@example.com"), podpis="1" * 64)
+	assert a.alarmy == ["Webhook Easycart ze złym podpisem"]
+	assert [d["status"] for d in a.dziennik] == ["zly_podpis", "zly_podpis"]
+	assert all("example.com" not in d["surowa"] for d in a.dziennik)
+
+
+def test_nadanie_po_wygasnieciu_tego_samego_zamowienia_nie_przywraca_dostepu():
+	a = Atrapa()
+	wyslij(a)
+	wyslij(a, dict(PAYLOAD, event="product_access_expired"))
+	assert a.zapisy == []
+	w = wyslij(a)  # ponowienie Easycart albo ręczne odtworzenie
+	assert (w.kod, w.status) == (200, "pominiete")
+	assert a.zapisy == [] and len(a.alarmy) == 1
+	wyslij(a, dict(PAYLOAD, order_id=500007))  # nowy zakup działa normalnie
+	assert a.zapisy == [("jan.kowalski@example.com", "test-lacznik-a")]
+
+
+def test_wygasniecie_cudzego_zamowienia_nie_wypisuje_zapisu_recznego():
+	a = Atrapa()
+	a.konta.append("jan.kowalski@example.com")
+	a.zapisy.append(("jan.kowalski@example.com", "test-lacznik-a"))  # zapis ręczny, bez wpisu w dzienniku
+	w = wyslij(a, dict(PAYLOAD, event="product_access_expired", order_id=600001))
+	assert (w.kod, w.status) == (200, "pominiete")
+	assert a.zapisy == [("jan.kowalski@example.com", "test-lacznik-a")] and len(a.alarmy) == 1

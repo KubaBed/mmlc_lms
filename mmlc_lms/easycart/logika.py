@@ -79,9 +79,18 @@ def zaplanuj(z: Zdarzenie, stan: Stan) -> list[tuple]:
 	if not stan.kurs_istnieje:
 		return [("alarm", f"Kursu {z.kurs} nie ma we Frappe")]
 	if z.rodzaj == WYGASNIECIE:
+		if not stan.zapis_istnieje:
+			return []
+		# zapis, którego nie nadało to zamówienie (ręczny, z migracji, z innego źródła), zostaje: inaczej zwrot zakupu
+		# "dla kogoś innego" wypisałby osobę, która ma dostęp skądinąd (audyt 15.11, B3)
+		if (NADANIE, z.order_id) not in stan.historia:
+			return [("alarm", f"Wygaśnięcie zamówienia bez nadania w dzienniku, zapis na {z.kurs} zostaje")]
 		# kursant mógł kupić ten sam kurs drugi raz; wtedy wygasa tylko starszy dostęp, a zapis zostaje
 		inne = aktywne_zamowienia(stan.historia) - {z.order_id}
-		return [("wypisz",)] if stan.zapis_istnieje and not inne else []
+		return [("wypisz",)] if not inne else []
+	# spóźnione albo odtworzone nadanie po wygaśnięciu tego samego zamówienia nie przywraca dostępu (audyt 15.11, B2)
+	if (WYGASNIECIE, z.order_id) in stan.historia:
+		return [("alarm", f"Nadanie przyszło po wygaśnięciu tego samego zamówienia, dostęp do {z.kurs} nie wraca")]
 	dzialania = []
 	if not stan.konto_istnieje:
 		dzialania.append(("zaloz_konto",))
@@ -100,8 +109,8 @@ class Wynik:
 def obsluz(surowa_tresc: bytes, naglowek: str | None, klucz: str, platforma) -> Wynik:
 	"""Cały webhook: podpis, odczyt, stan, działania, dziennik. `platforma` to Frappe (api.py) albo atrapa w testach."""
 	if not podpis_ok(surowa_tresc, naglowek, klucz):
-		platforma.alarm("Webhook Easycart ze złym podpisem")
-		platforma.zapisz_w_dzienniku(surowa_tresc, None, "zly_podpis", "")
+		# obcy ruch nie może sterować skrzynką ani bazą: bez treści w dzienniku, alarm najwyżej raz na godzinę (audyt 15.11, B1)
+		platforma.zly_podpis(len(surowa_tresc), hashlib.sha256(surowa_tresc).hexdigest())
 		return Wynik(401, "zly_podpis")
 	try:
 		z = odczytaj(json.loads(surowa_tresc))
