@@ -10,3 +10,6 @@ required_apps = ["lms"]
 # Strona /lms (aplikacja Vue z Frappe Learning) ma własny szablon HTML, który nie wczytuje motywu WWW
 # ani web_include_css. Dlatego arkusz MMLC dopisujemy do gotowej odpowiedzi HTML.
 after_request = ["mmlc_lms.inject.after_request"]
+
+# 0.3.0: nowy kurs bez samodzielnego zapisu (mmlc_lms/kurs.py)
+doc_events = {"LMS Course": {"before_insert": "mmlc_lms.kurs.wylacz_samodzielny_zapis"}}

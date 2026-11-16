@@ -23,7 +23,9 @@
 	// Frappe Learning dokleja do liczby jedną formę słowa ("6 lekcje", "1 Kursanci"). Poprawiamy odmianę.
 	var FORMS = {
 		"lekcje": ["lekcja", "lekcje", "lekcji"], "lekcji": ["lekcja", "lekcje", "lekcji"],
-		"sekcje": ["sekcja", "sekcje", "sekcji"], "sekcji": ["sekcja", "sekcje", "sekcji"],
+		// Frappe mówi „section”, a w edytorze kursu i w instrukcji jest „rozdział” (uwagi z 20.10)
+		"sekcja": ["rozdział", "rozdziały", "rozdziałów"], "sekcje": ["rozdział", "rozdziały", "rozdziałów"],
+		"sekcji": ["rozdział", "rozdziały", "rozdziałów"],
 		"kursanci": ["kursant", "kursanci", "kursantów"], "kursantów": ["kursant", "kursanci", "kursantów"]
 	};
 	function form(n, f) {
@@ -31,7 +33,7 @@
 		var d = n % 10, h = n % 100;
 		return d >= 2 && d <= 4 && (h < 12 || h > 14) ? f[1] : f[2];
 	}
-	var NUM = /(\d+)\s+(lekcje|lekcji|sekcje|sekcji|kursanci|kursantów)(?![\p{L}])/giu;
+	var NUM = /(\d+)\s+(lekcje|lekcji|sekcja|sekcje|sekcji|kursanci|kursantów)(?![\p{L}])/giu;
 	function plurals(root) {
 		var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n;
 		while ((n = w.nextNode())) {
@@ -62,6 +64,35 @@
 			}
 		});
 	}
+	// Napisy wpisane w Frappe Learning na sztywno po angielsku (menu użytkownika, ustawienia, edytor lekcji, postępy).
+	// Podmieniamy tylko węzeł tekstowy równy całemu napisowi (uwagi z 20.10).
+	var UI = {
+		"Toggle Theme": "Motyw", "Log out": "Wyloguj się", "Log Out": "Wyloguj się", "Log in": "Zaloguj się",
+		"Login to Frappe Cloud": "Panel Frappe Cloud", "My Profile": "Mój profil", "Settings": "Ustawienia",
+		"Student Progress": "Postępy kursanta", "Progress": "Postęp", "Heading": "Nagłówek", "List": "Lista",
+		"Table": "Tabela", "CodeBox": "Kod", "Upload": "Plik", "Quote": "Cytat", "Embed": "Osadzenie",
+		"Badges": "Odznaki", "Categories": "Kategorie", "Accounts": "Konta", "Gateways": "Bramki płatności",
+		"Transactions": "Transakcje", "Coupons": "Kupony", "Signup": "Rejestracja", "User Management": "Użytkownicy",
+		"Email Templates": "Szablony maili", "Payment": "Płatności", "Branding": "Wygląd", "Sidebar": "Menu boczne",
+		"Evaluators": "Oceniający", "Title": "Tytuł"
+	};
+	var COVER = "Okładka 1600 × 900 px (16:9), plik .jpg lub .png, widoczna na karcie kursu.";
+	function ui(root) {
+		var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n, hide = [];
+		while ((n = w.nextNode())) {
+			var t = n.nodeValue.trim();
+			if (!t) continue;
+			if (UI[t]) { n.nodeValue = n.nodeValue.replace(t, UI[t]); continue; }
+			if (t === "Clear Demo Data") { hide.push(n.parentElement); continue; }
+			if (/750\s*[×x]\s*422/.test(t)) { n.nodeValue = COVER; continue; }
+			var m = t.match(/^Nie znaleziono: (Courses|Kursy)$/);
+			if (m) n.nodeValue = "Nie znaleziono kursów";
+		}
+		hide.forEach(function (el) {
+			var item = el && (el.closest("[role='menuitem']") || el.closest("button") || el);
+			if (item) item.style.display = "none";
+		});
+	}
 	function skipLink() {
 		var a = document.querySelector("a.sr-only[href^='#']");
 		if (a && a.textContent.trim() === "Skip to main content") a.textContent = "Przejdź do treści";
@@ -75,6 +106,7 @@
 			if (document.querySelector(".plyr")) tr(document);
 			plurals(document.body);
 			tidy(document.body);
+			ui(document.body);
 			skipLink();
 		});
 	}).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
