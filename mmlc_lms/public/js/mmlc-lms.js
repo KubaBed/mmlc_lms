@@ -74,7 +74,8 @@
 		"Badges": "Odznaki", "Categories": "Kategorie", "Accounts": "Konta", "Gateways": "Bramki płatności",
 		"Transactions": "Transakcje", "Coupons": "Kupony", "Signup": "Rejestracja", "User Management": "Użytkownicy",
 		"Email Templates": "Szablony maili", "Payment": "Płatności", "Branding": "Wygląd", "Sidebar": "Menu boczne",
-		"Evaluators": "Oceniający", "Title": "Tytuł"
+		"Evaluators": "Oceniający", "Title": "Tytuł",
+		"Ty": "Konto", "Wróć tam, gdzie skończyłeś": "Wróć do swoich kursów"
 	};
 	var COVER = "Okładka 1600 × 900 px (16:9), plik .jpg lub .png, widoczna na karcie kursu.";
 	function ui(root) {
@@ -93,6 +94,46 @@
 			if (item) item.style.display = "none";
 		});
 	}
+	// 0.3.1 (przegląd kursanta 17.11): elementy, które kancelaria ukrywa, i komunikat o zakupie zamiast „skontaktuj się
+	// z administratorem”. Ukrywane po treści, bo frappe-ui nie daje im stałych klas.
+	var SKLEP = "https://mmlc.pl/kursy/";
+	var UKRYJ = /^(Zapisani: \d+|Certyfikat ukończenia|Społeczność|Odśwież sesję)$/;
+	function kursant(root) {
+		var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n, hide = [], zapis = [];
+		while ((n = w.nextNode())) {
+			var t = n.nodeValue.trim(), el = n.parentElement;
+			if (!t || !el) continue;
+			if (UKRYJ.test(t)) hide.push(t === "Społeczność" || t === "Odśwież sesję" ? el.closest("button") : el.closest("div"));
+			else if (t === "🔥") hide.push(el.closest("button"));
+			else if (/^Aby zapisać się na ten kurs/.test(t)) zapis.push(el);
+			else if (/enrolled programs/i.test(t)) n.nodeValue = /^Nie znaleziono/.test(t) ? "Nie masz jeszcze ścieżek nauki" : "Gdy dołączysz do ścieżki, zobaczysz ją tutaj.";
+			else if (/^Brak elementów: courses/i.test(t)) n.nodeValue = "Kupione kursy pojawią się tutaj. Ofertę znajdziesz na mmlc.pl.";
+			else if (t === "Osoby" && el.closest("header")) n.nodeValue = "Profil";
+		}
+		hide.forEach(function (e) { if (e) e.style.display = "none"; });
+		zapis.forEach(function (el) {
+			if (el.dataset.mmlc) return;
+			el.dataset.mmlc = "1";
+			el.classList.add("mmlc-zapis");
+			el.innerHTML = 'Dostęp do kursu kupisz na stronie <a href="' + SKLEP + '" target="_top" style="text-decoration:underline">mmlc.pl</a>. Po zakupie kurs pojawi się na Twojej liście.';
+		});
+		// stronicowanie przy jednej stronie kursów („0 z 0”, „2 z 2” w trzech blokach) razem z wyborem 24/60/120
+		document.querySelectorAll("div.flex.items-center.gap-1").forEach(function (c) {
+			var k = c.children;
+			if (k.length !== 3 || k[1].textContent.trim() !== "z") return;
+			var a = k[0].textContent.trim(), b = k[2].textContent.trim();
+			if (a === b && +a <= 24 && document.querySelector("[role='radiogroup']")) {
+				var bar = c.parentElement && c.parentElement.parentElement;
+				if (bar && bar.querySelector("[role='radiogroup']")) bar.style.display = "none";
+			}
+		});
+		// kategoria podwójnie: link z ikoną i etykieta pod tytułem
+		document.querySelectorAll("section.space-y-4 div.flex.flex-wrap.gap-2").forEach(function (box) {
+			var link = box.closest("section").querySelector("a[href*='category=']");
+			if (link && box.textContent.trim() === link.textContent.trim()) box.style.display = "none";
+		});
+		document.querySelectorAll("[aria-label='Notifications alt+T']").forEach(function (e) { e.setAttribute("aria-label", "Powiadomienia (Alt+T)"); });
+	}
 	function skipLink() {
 		var a = document.querySelector("a.sr-only[href^='#']");
 		if (a && a.textContent.trim() === "Skip to main content") a.textContent = "Przejdź do treści";
@@ -107,6 +148,7 @@
 			plurals(document.body);
 			tidy(document.body);
 			ui(document.body);
+			kursant(document.body);
 			skipLink();
 		});
 	}).observe(document.documentElement, { childList: true, subtree: true, characterData: true });

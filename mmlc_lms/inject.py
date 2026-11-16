@@ -2,7 +2,7 @@
 
 import frappe
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 # Przed skryptem Frappe Learning, który ustawia motyw z ustawień systemu: domyślnie jasny,
 # chyba że kursant sam wybrał motyw w aplikacji.

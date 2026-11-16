@@ -39,3 +39,10 @@ button[data-variant="subtle"], button[data-variant="outline"] { border-radius: 9
 .bg-surface-gray-7, [role="progressbar"] > div { background-color: #36B0A7 !important; }
 /* ⚡ Powered by Frappe Learning w menu */
 a[href*="frappe.io/learning"], [aria-label="Powered by Frappe Learning"] { display: none !important; }
+/* 0.3.1 (przegląd kursanta 17.11): bez liczby zapisanych i ocen na karcie kursu i w nagłówku kursu */
+div.flex.items-center.justify-between.mb-2 > div:has(.lucide-users),
+div.flex.items-center.justify-between.mb-2 > div:has(svg.fill-yellow-500),
+div.flex.items-center:has(> .lucide-users-round),
+span.lucide-dot:has(+ div > .lucide-users-round) { display: none !important; }
+/* komunikat o zapisie na kurs: łamanie wierszy zamiast wychodzenia poza kartę */
+.mmlc-zapis { white-space: normal !important; display: block !important; line-height: 1.45; }
