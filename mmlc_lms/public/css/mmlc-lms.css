@@ -45,4 +45,5 @@ div.flex.items-center.justify-between.mb-2 > div:has(svg.fill-yellow-500),
 div.flex.items-center:has(> .lucide-users-round),
 span.lucide-dot:has(+ div > .lucide-users-round) { display: none !important; }
 /* komunikat o zapisie na kurs: łamanie wierszy zamiast wychodzenia poza kartę */
-.mmlc-zapis { white-space: normal !important; display: block !important; line-height: 1.45; }
+.mmlc-zapis { white-space: normal !important; display: block !important; height: auto !important; overflow: visible !important;
+  border-radius: 4px !important; padding: 8px 10px !important; line-height: 1.45; }

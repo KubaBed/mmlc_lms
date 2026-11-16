@@ -77,7 +77,7 @@
 		"Evaluators": "Oceniający", "Title": "Tytuł",
 		"Ty": "Konto", "Wróć tam, gdzie skończyłeś": "Wróć do swoich kursów"
 	};
-	var COVER = "Okładka 1600 × 900 px (16:9), plik .jpg lub .png, widoczna na karcie kursu.";
+	var COVER = "Okładka 1280 × 568 px, plik .jpg lub .png, widoczna na karcie kursu.";
 	function ui(root) {
 		var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n, hide = [];
 		while ((n = w.nextNode())) {
@@ -106,7 +106,7 @@
 			if (UKRYJ.test(t)) hide.push(t === "Społeczność" || t === "Odśwież sesję" ? el.closest("button") : el.closest("div"));
 			else if (t === "🔥") hide.push(el.closest("button"));
 			else if (/^Aby zapisać się na ten kurs/.test(t)) zapis.push(el);
-			else if (/enrolled programs/i.test(t)) n.nodeValue = /^Nie znaleziono/.test(t) ? "Nie masz jeszcze ścieżek nauki" : "Gdy dołączysz do ścieżki, zobaczysz ją tutaj.";
+			else if (/enrolled programs/i.test(t)) n.nodeValue = /^Nie znaleziono/.test(t) ? "Nie masz jeszcze ścieżek nauki" : "Kursy kupione na mmlc.pl znajdziesz w zakładce Kursy.";
 			else if (/^Brak elementów: courses/i.test(t)) n.nodeValue = "Kupione kursy pojawią się tutaj. Ofertę znajdziesz na mmlc.pl.";
 			else if (t === "Osoby" && el.closest("header")) n.nodeValue = "Profil";
 		}
@@ -115,7 +115,7 @@
 			if (el.dataset.mmlc) return;
 			el.dataset.mmlc = "1";
 			el.classList.add("mmlc-zapis");
-			el.innerHTML = 'Dostęp do kursu kupisz na stronie <a href="' + SKLEP + '" target="_top" style="text-decoration:underline">mmlc.pl</a>. Po zakupie kurs pojawi się na Twojej liście.';
+			el.innerHTML = 'Dostęp do kursu kupisz na stronie <a href="' + SKLEP + '" target="_top" style="text-decoration:underline">mmlc.pl</a>. Po zakupie kurs pojawi się wśród Twoich kursów.';
 		});
 		// stronicowanie przy jednej stronie kursów („0 z 0”, „2 z 2” w trzech blokach) razem z wyborem 24/60/120
 		document.querySelectorAll("div.flex.items-center.gap-1").forEach(function (c) {
