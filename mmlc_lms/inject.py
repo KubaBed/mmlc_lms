@@ -2,7 +2,11 @@
 
 import frappe
 
-VERSION = "0.3.2"
+from mmlc_lms import __version__
+
+# adres skryptu i arkusza zmienia się z wersją aplikacji: /assets mają cache na rok (immutable), więc wpisana na sztywno
+# wersja zostawiała przeglądarki na starym skrypcie (0.4.0 wyszło z ?v=0.3.2)
+VERSION = __version__
 
 # Przed skryptem Frappe Learning, który ustawia motyw z ustawień systemu: domyślnie jasny,
 # chyba że kursant sam wybrał motyw w aplikacji.
