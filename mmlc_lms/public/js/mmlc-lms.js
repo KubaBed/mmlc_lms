@@ -134,6 +134,79 @@
 		});
 		document.querySelectorAll("[aria-label='Notifications alt+T']").forEach(function (e) { e.setAttribute("aria-label", "Powiadomienia (Alt+T)"); });
 	}
+	// 0.4.0: w oknie „Postępy kursanta” (Pulpit kursu) data końca dostępu i przycisk „Wypisz z kursu” dla menedżera.
+	// Uprawnienia sprawdza serwer (mmlc_lms/dostep/api.py); kursant tego okna nie widzi.
+	var WYPIS = {
+		reczny: "Dostęp nadany ręcznie, ważny do {0}.",
+		recznyIZakup: "Dostęp nadany ręcznie do {0}. Ta osoba kupiła też kurs w Easycart, więc po tej dacie dostęp zostanie.",
+		zakup: "Dostęp kupiony w Easycart. Skończy się, gdy minie tam albo zostanie odebrany.",
+		bezKonca: "Dostęp bez daty końca.",
+		przycisk: "Wypisz z kursu",
+		pytanie: "Wypisać {0} z kursu? Straci dostęp do lekcji. Konto, postęp i wyniki testów zostaną i wrócą po ponownym zapisie.",
+		pytanieZakup: "\n\nTa osoba kupiła kurs w Easycart. Jeśli to zwrot albo pomyłka, kliknij Anuluj i odbierz dostęp w Easycart (Sklep → Zamówienia). Platforma sama wypisze ją z kursu.",
+		blad: "Nie udało się wypisać. {0}",
+		bladNieznany: "Odśwież stronę i spróbuj jeszcze raz."
+	};
+	var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	function api(metoda, dane, post) {
+		var q = new URLSearchParams(dane);
+		var opcje = post
+			? { method: "POST", body: q, headers: { "X-Frappe-CSRF-Token": window.csrf_token || "" } }
+			: {};
+		return fetch("/api/method/mmlc_lms.dostep.api." + metoda + (post ? "" : "?" + q), opcje).then(function (r) {
+			return r.json().then(function (j) {
+				if (r.ok) return j.message;
+				var tekst = "";
+				try { tekst = JSON.parse(JSON.parse(j._server_messages)[0]).message; } catch (e) { tekst = ""; }
+				// bez polskiego komunikatu z serwera nie pokazujemy angielskiego błędu technicznego (audyt 17.11, w. 9)
+				if (!tekst) tekst = WYPIS.bladNieznany;
+				throw new Error(tekst);
+			});
+		});
+	}
+	function wypis() {
+		var m = location.pathname.match(/\/lms\/courses\/([^/?#]+)/);
+		if (!m) return;
+		var kurs = decodeURIComponent(m[1]);
+		document.querySelectorAll("[role='dialog']").forEach(function (okno) {
+			if (okno.dataset.mmlcWypis || !/Postępy kursanta|Student Progress/.test(okno.textContent || "")) return;
+			var adres = Array.prototype.find.call(okno.querySelectorAll("div"), function (d) {
+				return d.childElementCount === 0 && EMAIL.test((d.textContent || "").trim());
+			});
+			if (!adres) return;
+			okno.dataset.mmlcWypis = "1";
+			var kursant = adres.textContent.trim();
+			var pole = document.createElement("div");
+			pole.className = "mmlc-wypis";
+			pole.style.cssText = "margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px";
+			var info = document.createElement("span");
+			info.style.cssText = "font-size:13px;color:var(--ink-gray-6,#525252)";
+			var przycisk = document.createElement("button");
+			przycisk.type = "button";
+			przycisk.textContent = WYPIS.przycisk;
+			przycisk.style.cssText = "font-size:13px;padding:4px 10px;border-radius:6px;border:1px solid #c0392b;color:#c0392b;background:transparent;cursor:pointer";
+			pole.appendChild(info);
+			pole.appendChild(przycisk);
+			adres.parentElement.appendChild(pole);
+			var zakup = false;
+			api("stan", { course: kurs, member: kursant }).then(function (s) {
+				zakup = s.zakup;
+				info.textContent = s.dostep_do
+					? (s.zakup ? WYPIS.recznyIZakup : WYPIS.reczny).replace("{0}", s.dostep_do)
+					: s.zakup ? WYPIS.zakup : WYPIS.bezKonca;
+			}).catch(function () { pole.style.display = "none"; });
+			przycisk.addEventListener("click", function () {
+				if (!window.confirm(WYPIS.pytanie.replace("{0}", kursant) + (zakup ? WYPIS.pytanieZakup : ""))) return;
+				przycisk.disabled = true;
+				api("wypisz", { course: kurs, member: kursant }, true).then(function () {
+					location.reload();
+				}).catch(function (e) {
+					przycisk.disabled = false;
+					window.alert(WYPIS.blad.replace("{0}", e.message));
+				});
+			});
+		});
+	}
 	function skipLink() {
 		var a = document.querySelector("a.sr-only[href^='#']");
 		if (a && a.textContent.trim() === "Skip to main content") a.textContent = "Przejdź do treści";
@@ -149,6 +222,7 @@
 			tidy(document.body);
 			ui(document.body);
 			kursant(document.body);
+			wypis();
 			skipLink();
 		});
 	}).observe(document.documentElement, { childList: true, subtree: true, characterData: true });

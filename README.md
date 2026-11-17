@@ -25,3 +25,21 @@ po końcu dostępu. Adres: `POST /api/method/mmlc_lms.easycart.api.webhook`, pod
 - Kody: 200 zrobione albo pominięte (nieznany kurs = alarm), 401 zły podpis, 400 treść nie jest JSON-em,
   500 błąd Frappe (Easycart może ponowić), 503 brak klucza podpisu.
 - Logika i podpis: `mmlc_lms/easycart/logika.py`, bez importu `frappe`. Testy: `uv run --with pytest pytest testy`.
+
+## Ręczny dostęp: data końca i wypis z kursu (0.4.0)
+
+Dla przelewu po proformie: po wpłacie menedżer kursów zapisuje osobę z Pulpitu kursu, a dostęp wygasa sam,
+tak jak kupiony w Easycart.
+
+- Zapis zrobiony przez kogoś innego niż kursant (Pulpit kursu, administrator) dostaje pole `mmlc_dostep_do` na
+  `LMS Enrollment`: dziś + 365 dni albo stała data z pola `mmlc_dostep_do` kursu (jak `access_until` wariantu w Easycart,
+  np. DIWASS 10.12.2027). Zapis z łącznika Easycart, samodzielny zapis na kurs darmowy i zapis przez grupę zostają bez
+  daty. Data podana przy zapisie (np. import przez API) wygrywa; zmienić ją może tylko menedżer kursu.
+- Codziennie (`scheduler_events`, `daily`) `mmlc_lms.dostep.api.wygas_reczne` usuwa zapisy po dacie końca. Konto,
+  postęp i wyniki testów zostają. Gdy osoba kupiła potem kurs w Easycart (aktywne zamówienie w dzienniku), data ręczna
+  znika, a dostępem rządzi zakup.
+- Okno „Postępy kursanta” na Pulpicie kursu pokazuje datę końca dostępu i przycisk „Wypisz z kursu” (tylko Moderator,
+  administrator, autor kursu; sprawdza serwer w `wypisz`).
+- Ślad w dzienniku „MMLC Zdarzenie Easycart”: `reczny_wypis`, `reczne_wygasniecie`, `reczny_przejety`.
+- Pola dodaje patch `mmlc_lms.patches.v0_4.pola_dostepu` przy `migrate`. Zapisy sprzed 0.4.0 nie mają daty i nie wygasają.
+- Logika: `mmlc_lms/dostep/logika.py`, testy `testy/test_dostep.py`.

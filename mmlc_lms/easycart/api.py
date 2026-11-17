@@ -85,10 +85,12 @@ class PlatformaFrappe:
 
 	@_w_punkcie_zapisu
 	def zapisz(self, z: Zdarzenie):
-		# Notification "MMLC zapis na kurs" wysyła mail o zapisie
-		frappe.get_doc(
+		# Notification "MMLC zapis na kurs" wysyła mail o zapisie; flaga: bez daty końca ręcznego dostępu (dostep/api.py)
+		zapis = frappe.get_doc(
 			{"doctype": "LMS Enrollment", "member": z.email, "course": z.kurs, "member_type": "Student"}
-		).insert(ignore_permissions=True)
+		)
+		zapis.flags.mmlc_z_lacznika = True
+		zapis.insert(ignore_permissions=True)
 
 	@_w_punkcie_zapisu
 	def wypisz(self, z: Zdarzenie):
